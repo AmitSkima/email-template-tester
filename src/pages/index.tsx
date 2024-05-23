@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Head from "next/head";
 import { Inter } from "next/font/google";
 
 import { Form, Formik, Field } from "formik";
@@ -10,14 +11,13 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useLocalStorage } from "usehooks-ts";
+import { useLocalStorage, useDebounceCallback } from "usehooks-ts";
 
 const DEFAULT_PORT = 3000;
 
 import { useElementSize } from "@/hooks/useElementSize";
 import { MailRequestBody, MailResponse } from "@/pages/api/sendmail";
 import { toast } from "@/components/ui/use-toast";
-import Head from "next/head";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { FormiKInputFieldProps } from "@/types/formik";
@@ -43,12 +43,12 @@ const emailValdationSchema = Yup.object({
 });
 
 export default function Home() {
-  const [htmlContent, setHtmlContent] = useState("");
+  const [containerRef, containerSize] = useElementSize();
+  const [htmlContent, setHtmlContent] = useLocalStorage("email-template", "");
   const [mailTo, setMailTo] = useLocalStorage("mail:to", "");
-
   const [isSendingMail, setIsSendingMail] = useState(false);
 
-  const [containerRef, containerSize] = useElementSize();
+  const debouncedHtmlContentSetter = useDebounceCallback(setHtmlContent, 500);
 
   const submitMail = async () => {
     setIsSendingMail(true);
@@ -149,7 +149,9 @@ export default function Home() {
                 theme="vs-dark"
                 value={htmlContent}
                 options={editorOptions}
-                onChange={(contents) => setHtmlContent(contents ?? "")}
+                onChange={(contents) =>
+                  debouncedHtmlContentSetter(contents ?? "")
+                }
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
